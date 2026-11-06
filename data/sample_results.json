@@ -1,0 +1,342 @@
+{
+  "_note": "Synthetic data. Expected results computed from the policy logic in sql/pii_demo_setup.sql.",
+  "roles": [
+    "PII_ADMIN",
+    "PII_ANALYST",
+    "PII_SUPPORT",
+    "PII_MARKETING"
+  ],
+  "masking": {
+    "customer_id": 1,
+    "columns": [
+      {
+        "column": "EMAIL",
+        "before": "john.smith@gmail.com",
+        "after": {
+          "PII_ADMIN": "john.smith@gmail.com",
+          "PII_ANALYST": "****@gmail.com",
+          "PII_SUPPORT": "john.smith@gmail.com",
+          "PII_MARKETING": "****@gmail.com"
+        }
+      },
+      {
+        "column": "PHONE_NUMBER",
+        "before": "555-123-4567",
+        "after": {
+          "PII_ADMIN": "555-123-4567",
+          "PII_ANALYST": "***-***-4567",
+          "PII_SUPPORT": "555-123-4567",
+          "PII_MARKETING": "***-***-****"
+        }
+      },
+      {
+        "column": "DATE_OF_BIRTH",
+        "before": "1985-03-15",
+        "after": {
+          "PII_ADMIN": "1985-03-15",
+          "PII_ANALYST": "1985-01-01",
+          "PII_SUPPORT": "NULL",
+          "PII_MARKETING": "NULL"
+        }
+      },
+      {
+        "column": "SSN",
+        "before": "123-45-6789",
+        "after": {
+          "PII_ADMIN": "123-45-6789",
+          "PII_ANALYST": "***-**-****",
+          "PII_SUPPORT": "***-**-****",
+          "PII_MARKETING": "***-**-****"
+        }
+      },
+      {
+        "column": "CREDIT_CARD_NUMBER",
+        "before": "4111-1111-1111-1111",
+        "after": {
+          "PII_ADMIN": "4111-1111-1111-1111",
+          "PII_ANALYST": "****-****-****-1111",
+          "PII_SUPPORT": "****-****-****-****",
+          "PII_MARKETING": "****-****-****-****"
+        }
+      },
+      {
+        "column": "STREET_ADDRESS",
+        "before": "123 Main Street",
+        "after": {
+          "PII_ADMIN": "123 Main Street",
+          "PII_ANALYST": "123 Main Street",
+          "PII_SUPPORT": "123 Main Street",
+          "PII_MARKETING": "*** STREET ADDRESS HIDDEN ***"
+        }
+      },
+      {
+        "column": "BANK_ACCOUNT",
+        "before": "1234567890",
+        "after": {
+          "PII_ADMIN": "1234567890",
+          "PII_ANALYST": "**********",
+          "PII_SUPPORT": "**********",
+          "PII_MARKETING": "**********"
+        }
+      },
+      {
+        "column": "DRIVERS_LICENSE",
+        "before": "D1234567",
+        "after": {
+          "PII_ADMIN": "D1234567",
+          "PII_ANALYST": "****4567",
+          "PII_SUPPORT": "********",
+          "PII_MARKETING": "********"
+        }
+      }
+    ]
+  },
+  "tag_masking": {
+    "customer_id": 1,
+    "columns": [
+      {
+        "column": "LAST_NAME",
+        "before": "Smith",
+        "after": {
+          "PII_ADMIN": "Smith",
+          "PII_ANALYST": "S***",
+          "PII_SUPPORT": "Smith",
+          "PII_MARKETING": "S***"
+        }
+      },
+      {
+        "column": "ZIP_CODE",
+        "before": "10001",
+        "after": {
+          "PII_ADMIN": "10001",
+          "PII_ANALYST": "1***",
+          "PII_SUPPORT": "10001",
+          "PII_MARKETING": "1***"
+        }
+      }
+    ]
+  },
+  "row_access": {
+    "by_role": [
+      {
+        "role": "PII_ADMIN",
+        "visible_rows": 98,
+        "by_type": {
+          "STANDARD": 58,
+          "VIP": 25,
+          "INTERNAL": 15
+        }
+      },
+      {
+        "role": "PII_ANALYST",
+        "visible_rows": 98,
+        "by_type": {
+          "STANDARD": 58,
+          "VIP": 25,
+          "INTERNAL": 15
+        }
+      },
+      {
+        "role": "PII_SUPPORT",
+        "visible_rows": 58,
+        "by_type": {
+          "STANDARD": 58,
+          "VIP": 0,
+          "INTERNAL": 0
+        }
+      },
+      {
+        "role": "PII_MARKETING",
+        "visible_rows": 83,
+        "by_type": {
+          "STANDARD": 58,
+          "VIP": 25,
+          "INTERNAL": 0
+        }
+      }
+    ],
+    "total_rows": 98,
+    "before_by_type": {
+      "STANDARD": 58,
+      "VIP": 25,
+      "INTERNAL": 15
+    },
+    "sample_customers": [
+      {
+        "customer_id": 1,
+        "name": "John Smith",
+        "customer_type": "STANDARD",
+        "visible_to": {
+          "PII_ADMIN": true,
+          "PII_ANALYST": true,
+          "PII_SUPPORT": true,
+          "PII_MARKETING": true
+        }
+      },
+      {
+        "customer_id": 59,
+        "name": "William Collins",
+        "customer_type": "VIP",
+        "visible_to": {
+          "PII_ADMIN": true,
+          "PII_ANALYST": true,
+          "PII_SUPPORT": false,
+          "PII_MARKETING": true
+        }
+      },
+      {
+        "customer_id": 84,
+        "name": "Admin User",
+        "customer_type": "INTERNAL",
+        "visible_to": {
+          "PII_ADMIN": true,
+          "PII_ANALYST": true,
+          "PII_SUPPORT": false,
+          "PII_MARKETING": false
+        }
+      }
+    ]
+  },
+  "role_view": {
+    "view": "CUSTOMERS_MARKETING_V",
+    "role": "PII_MARKETING",
+    "row": {
+      "CUSTOMER_ID": "1",
+      "CUSTOMER_TYPE": "STANDARD",
+      "REGION": "NORTH",
+      "FIRST_NAME": "John",
+      "LAST_NAME": "S***",
+      "EMAIL": "****@gmail.com",
+      "CITY": "New York",
+      "STATE": "NY",
+      "ZIP_CODE": "1***",
+      "MEMBERSHIP_LEVEL": "BRONZE"
+    },
+    "hidden_columns": [
+      "PHONE_NUMBER",
+      "MOBILE_NUMBER",
+      "DATE_OF_BIRTH",
+      "SSN",
+      "DRIVERS_LICENSE",
+      "STREET_ADDRESS",
+      "COUNTRY",
+      "CREDIT_CARD_NUMBER",
+      "BANK_ACCOUNT"
+    ]
+  },
+  "role_testing": {
+    "customer_id": 1,
+    "columns": [
+      {
+        "column": "CUSTOMER_TYPE",
+        "before": "STANDARD",
+        "after": {
+          "PII_ADMIN": "STANDARD",
+          "PII_ANALYST": "STANDARD",
+          "PII_SUPPORT": "STANDARD",
+          "PII_MARKETING": "STANDARD"
+        }
+      },
+      {
+        "column": "FIRST_NAME",
+        "before": "John",
+        "after": {
+          "PII_ADMIN": "John",
+          "PII_ANALYST": "John",
+          "PII_SUPPORT": "John",
+          "PII_MARKETING": "John"
+        }
+      },
+      {
+        "column": "LAST_NAME",
+        "before": "Smith",
+        "after": {
+          "PII_ADMIN": "Smith",
+          "PII_ANALYST": "S***",
+          "PII_SUPPORT": "Smith",
+          "PII_MARKETING": "S***"
+        }
+      },
+      {
+        "column": "EMAIL",
+        "before": "john.smith@gmail.com",
+        "after": {
+          "PII_ADMIN": "john.smith@gmail.com",
+          "PII_ANALYST": "****@gmail.com",
+          "PII_SUPPORT": "john.smith@gmail.com",
+          "PII_MARKETING": "****@gmail.com"
+        }
+      },
+      {
+        "column": "PHONE_NUMBER",
+        "before": "555-123-4567",
+        "after": {
+          "PII_ADMIN": "555-123-4567",
+          "PII_ANALYST": "***-***-4567",
+          "PII_SUPPORT": "555-123-4567",
+          "PII_MARKETING": "***-***-****"
+        }
+      },
+      {
+        "column": "DATE_OF_BIRTH",
+        "before": "1985-03-15",
+        "after": {
+          "PII_ADMIN": "1985-03-15",
+          "PII_ANALYST": "1985-01-01",
+          "PII_SUPPORT": "NULL",
+          "PII_MARKETING": "NULL"
+        }
+      },
+      {
+        "column": "SSN",
+        "before": "123-45-6789",
+        "after": {
+          "PII_ADMIN": "123-45-6789",
+          "PII_ANALYST": "***-**-****",
+          "PII_SUPPORT": "***-**-****",
+          "PII_MARKETING": "***-**-****"
+        }
+      },
+      {
+        "column": "CREDIT_CARD_NUMBER",
+        "before": "4111-1111-1111-1111",
+        "after": {
+          "PII_ADMIN": "4111-1111-1111-1111",
+          "PII_ANALYST": "****-****-****-1111",
+          "PII_SUPPORT": "****-****-****-****",
+          "PII_MARKETING": "****-****-****-****"
+        }
+      },
+      {
+        "column": "STREET_ADDRESS",
+        "before": "123 Main Street",
+        "after": {
+          "PII_ADMIN": "123 Main Street",
+          "PII_ANALYST": "123 Main Street",
+          "PII_SUPPORT": "123 Main Street",
+          "PII_MARKETING": "*** STREET ADDRESS HIDDEN ***"
+        }
+      },
+      {
+        "column": "ZIP_CODE",
+        "before": "10001",
+        "after": {
+          "PII_ADMIN": "10001",
+          "PII_ANALYST": "1***",
+          "PII_SUPPORT": "10001",
+          "PII_MARKETING": "1***"
+        }
+      },
+      {
+        "column": "VISIBLE_ROWS",
+        "before": "98",
+        "after": {
+          "PII_ADMIN": "98",
+          "PII_ANALYST": "98",
+          "PII_SUPPORT": "58",
+          "PII_MARKETING": "83"
+        }
+      }
+    ]
+  }
+}
