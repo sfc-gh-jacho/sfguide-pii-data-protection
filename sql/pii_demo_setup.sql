@@ -12,8 +12,8 @@
    <YOUR_WAREHOUSE>  - a warehouse you can use (e.g. COMPUTE_WH)
    <YOUR_DATABASE>   - an existing database to hold the demo schema
 
- Requires Enterprise Edition (or higher). Run as ACCOUNTADMIN, or as
- <YOUR_ROLE> with equivalent privileges (see README).
+ Requires Enterprise Edition (or higher). Runs as ACCOUNTADMIN by default,
+ or as a least-privilege PII_DEMO_ROLE (see the top of Step 1 and the README).
 
  ALL DATA IN THIS SCRIPT IS SYNTHETIC. No real people are represented.
 ================================================================================
@@ -24,7 +24,24 @@
 -- STEP 1: SETUP - Schema and Table Creation
 -- ============================================================================
 
-USE ROLE ACCOUNTADMIN;
+-- Choose the role that runs the demo:
+--   'ACCOUNTADMIN'  - simplest, for sandbox accounts
+--   'PII_DEMO_ROLE' - least privilege; create it once with the block below
+SET demo_role = 'ACCOUNTADMIN';
+
+-- OPTIONAL: least-privilege demo role. An administrator runs this ONCE,
+-- then set demo_role = 'PII_DEMO_ROLE' above.
+-- USE ROLE ACCOUNTADMIN;
+-- CREATE ROLE IF NOT EXISTS PII_DEMO_ROLE COMMENT = 'Runs the PII protection demo';
+-- GRANT USAGE ON DATABASE <YOUR_DATABASE> TO ROLE PII_DEMO_ROLE WITH GRANT OPTION;  -- passed on to the 4 demo roles
+-- GRANT CREATE SCHEMA ON DATABASE <YOUR_DATABASE> TO ROLE PII_DEMO_ROLE;          -- demo schema (owned by this role)
+-- GRANT USAGE ON WAREHOUSE <YOUR_WAREHOUSE> TO ROLE PII_DEMO_ROLE WITH GRANT OPTION;
+-- GRANT CREATE ROLE ON ACCOUNT TO ROLE PII_DEMO_ROLE;                            -- PII_ADMIN/ANALYST/SUPPORT/MARKETING
+-- GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE PII_DEMO_ROLE;                   -- tag-based masking (Step 8)
+-- SET my_user = CURRENT_USER();
+-- GRANT ROLE PII_DEMO_ROLE TO USER IDENTIFIER($my_user);
+
+USE ROLE IDENTIFIER($demo_role);
 USE WAREHOUSE <YOUR_WAREHOUSE>;
 USE DATABASE <YOUR_DATABASE>;
 
@@ -80,11 +97,11 @@ CREATE ROLE IF NOT EXISTS PII_ANALYST;
 CREATE ROLE IF NOT EXISTS PII_SUPPORT;
 CREATE ROLE IF NOT EXISTS PII_MARKETING;
 
--- Grant roles to ACCOUNTADMIN for easy switching during demo
-GRANT ROLE PII_ADMIN TO ROLE ACCOUNTADMIN;
-GRANT ROLE PII_ANALYST TO ROLE ACCOUNTADMIN;
-GRANT ROLE PII_SUPPORT TO ROLE ACCOUNTADMIN;
-GRANT ROLE PII_MARKETING TO ROLE ACCOUNTADMIN;
+-- Grant the demo roles to the role running the script, for easy switching
+GRANT ROLE PII_ADMIN TO ROLE IDENTIFIER($demo_role);
+GRANT ROLE PII_ANALYST TO ROLE IDENTIFIER($demo_role);
+GRANT ROLE PII_SUPPORT TO ROLE IDENTIFIER($demo_role);
+GRANT ROLE PII_MARKETING TO ROLE IDENTIFIER($demo_role);
 
 -- Grant warehouse usage to all roles
 GRANT USAGE ON WAREHOUSE <YOUR_WAREHOUSE> TO ROLE PII_ADMIN;
@@ -119,7 +136,7 @@ GRANT SELECT ON TABLE CUSTOMERS TO ROLE PII_MARKETING;
 -- All others: Fully masked (***-**-****)
 CREATE OR REPLACE MASKING POLICY mask_ssn AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN') THEN val
         ELSE '***-**-****'
     END;
 
@@ -129,7 +146,7 @@ CREATE OR REPLACE MASKING POLICY mask_ssn AS (val STRING) RETURNS STRING ->
 -- Others: Fully masked
 CREATE OR REPLACE MASKING POLICY mask_dob AS (val DATE) RETURNS DATE ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN') THEN val
         WHEN CURRENT_ROLE() = 'PII_ANALYST' THEN DATE_TRUNC('YEAR', val)
         ELSE NULL
     END;
@@ -140,7 +157,7 @@ CREATE OR REPLACE MASKING POLICY mask_dob AS (val DATE) RETURNS DATE ->
 -- PII_MARKETING: Fully masked
 CREATE OR REPLACE MASKING POLICY mask_phone AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN', 'PII_SUPPORT') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN', 'PII_SUPPORT') THEN val
         WHEN CURRENT_ROLE() = 'PII_ANALYST' THEN CONCAT('***-***-', RIGHT(val, 4))
         ELSE '***-***-****'
     END;
@@ -150,7 +167,7 @@ CREATE OR REPLACE MASKING POLICY mask_phone AS (val STRING) RETURNS STRING ->
 -- PII_ANALYST, PII_MARKETING: Domain only (****@domain.com)
 CREATE OR REPLACE MASKING POLICY mask_email AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN', 'PII_SUPPORT') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN', 'PII_SUPPORT') THEN val
         WHEN CURRENT_ROLE() IN ('PII_ANALYST', 'PII_MARKETING') THEN
             CONCAT('****@', SPLIT_PART(val, '@', 2))
         ELSE '****@****.***'
@@ -162,7 +179,7 @@ CREATE OR REPLACE MASKING POLICY mask_email AS (val STRING) RETURNS STRING ->
 -- Others: Fully masked
 CREATE OR REPLACE MASKING POLICY mask_credit_card AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN') THEN val
         WHEN CURRENT_ROLE() = 'PII_ANALYST' THEN CONCAT('****-****-****-', RIGHT(val, 4))
         ELSE '****-****-****-****'
     END;
@@ -172,7 +189,7 @@ CREATE OR REPLACE MASKING POLICY mask_credit_card AS (val STRING) RETURNS STRING
 -- PII_MARKETING: Masked
 CREATE OR REPLACE MASKING POLICY mask_address AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN', 'PII_ANALYST', 'PII_SUPPORT') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN', 'PII_ANALYST', 'PII_SUPPORT') THEN val
         ELSE '*** STREET ADDRESS HIDDEN ***'
     END;
 
@@ -181,7 +198,7 @@ CREATE OR REPLACE MASKING POLICY mask_address AS (val STRING) RETURNS STRING ->
 -- All others: Fully masked
 CREATE OR REPLACE MASKING POLICY mask_bank_account AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN') THEN val
         ELSE '**********'
     END;
 
@@ -191,7 +208,7 @@ CREATE OR REPLACE MASKING POLICY mask_bank_account AS (val STRING) RETURNS STRIN
 -- Others: Fully masked
 CREATE OR REPLACE MASKING POLICY mask_drivers_license AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN') THEN val
         WHEN CURRENT_ROLE() = 'PII_ANALYST' THEN CONCAT('****', RIGHT(val, 4))
         ELSE '********'
     END;
@@ -207,7 +224,7 @@ CREATE OR REPLACE MASKING POLICY mask_drivers_license AS (val STRING) RETURNS ST
 -- PII_MARKETING: STANDARD and VIP only (no INTERNAL)
 CREATE OR REPLACE ROW ACCESS POLICY customer_row_access AS (customer_type_val STRING) RETURNS BOOLEAN ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN', 'PII_ANALYST') THEN TRUE
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN', 'PII_ANALYST') THEN TRUE
         WHEN CURRENT_ROLE() = 'PII_SUPPORT' AND customer_type_val = 'STANDARD' THEN TRUE
         WHEN CURRENT_ROLE() = 'PII_MARKETING' AND customer_type_val IN ('STANDARD', 'VIP') THEN TRUE
         ELSE FALSE
@@ -384,7 +401,7 @@ CREATE OR REPLACE TAG PII_LEVEL
 -- Others: First character only (e.g. S***)
 CREATE OR REPLACE MASKING POLICY mask_pii_tag AS (val STRING) RETURNS STRING ->
     CASE
-        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_ADMIN', 'PII_SUPPORT') THEN val
+        WHEN CURRENT_ROLE() IN ('ACCOUNTADMIN', 'PII_DEMO_ROLE', 'PII_ADMIN', 'PII_SUPPORT') THEN val
         ELSE CONCAT(LEFT(val, 1), '***')
     END;
 
@@ -461,17 +478,21 @@ SELECT 'PII_SUPPORT' AS ROLE, COUNT(*) AS VISIBLE_ROWS FROM <YOUR_DATABASE>.DEMO
 USE ROLE PII_MARKETING;
 SELECT 'PII_MARKETING' AS ROLE, COUNT(*) AS VISIBLE_ROWS FROM <YOUR_DATABASE>.DEMODATASECURITY.CUSTOMERS;  -- Expected: 83 (STANDARD + VIP)
 
-USE ROLE ACCOUNTADMIN;
+USE ROLE IDENTIFIER($demo_role);
 
 -- [step:cleanup]
 -- ============================================================================
 -- STEP 11: CLEANUP (Optional - uncomment to remove demo objects)
 -- ============================================================================
 
--- USE ROLE ACCOUNTADMIN;
+-- USE ROLE IDENTIFIER($demo_role);
 -- ALTER TAG <YOUR_DATABASE>.DEMODATASECURITY.PII_LEVEL UNSET MASKING POLICY mask_pii_tag;
 -- DROP SCHEMA IF EXISTS <YOUR_DATABASE>.DEMODATASECURITY CASCADE;  -- drops table, view, policies and tag
 -- DROP ROLE IF EXISTS PII_ADMIN;
 -- DROP ROLE IF EXISTS PII_ANALYST;
 -- DROP ROLE IF EXISTS PII_SUPPORT;
 -- DROP ROLE IF EXISTS PII_MARKETING;
+-- UNSET demo_role;
+-- If you created the least-privilege role, an administrator removes it:
+-- USE ROLE ACCOUNTADMIN;
+-- DROP ROLE IF EXISTS PII_DEMO_ROLE;

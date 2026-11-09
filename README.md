@@ -1,5 +1,7 @@
 # Protecting PII in Snowflake
 
+**Owner:** Janet Cho · **Last reviewed:** November 2026 · **License:** [Apache 2.0](LICENSE)
+
 A customer-facing, step-by-step guide to protecting personally identifiable information (PII) with Snowflake Horizon governance features:
 
 - **Sensitive Data Classification**: automatically discover PII columns and apply system tags
@@ -15,12 +17,25 @@ The site is fully static. It does not connect to any Snowflake account. You copy
 ## Prerequisites
 
 - **Snowflake Enterprise Edition or higher** (required for masking, row access, tag-based masking and classification)
-- **ACCOUNTADMIN**, or a custom role with:
-  - `CREATE ROLE` on the account
-  - `USAGE` on a database and `CREATE SCHEMA` on it
-  - `APPLY MASKING POLICY`, `APPLY ROW ACCESS POLICY` and `APPLY TAG` on the account
-  - `USAGE` on a warehouse, plus the ability to grant it to the demo roles
-- A warehouse (any size works)
+- A warehouse (any size works) and an existing database for the demo schema
+- **A role to run it.** ACCOUNTADMIN is simplest in a sandbox. For regulated environments, use the least-privilege option below.
+
+### Least-privilege option (no ACCOUNTADMIN)
+
+The script starts with `SET demo_role = 'ACCOUNTADMIN';`. To run without ACCOUNTADMIN, an administrator runs the commented block at the top of Step 1 once:
+
+```sql
+USE ROLE ACCOUNTADMIN;
+CREATE ROLE IF NOT EXISTS PII_DEMO_ROLE;
+GRANT USAGE ON DATABASE <YOUR_DATABASE> TO ROLE PII_DEMO_ROLE WITH GRANT OPTION;   -- passed on to the 4 demo roles
+GRANT CREATE SCHEMA ON DATABASE <YOUR_DATABASE> TO ROLE PII_DEMO_ROLE;
+GRANT USAGE ON WAREHOUSE <YOUR_WAREHOUSE> TO ROLE PII_DEMO_ROLE WITH GRANT OPTION;
+GRANT CREATE ROLE ON ACCOUNT TO ROLE PII_DEMO_ROLE;                             -- PII_ADMIN / ANALYST / SUPPORT / MARKETING
+GRANT APPLY MASKING POLICY ON ACCOUNT TO ROLE PII_DEMO_ROLE;                    -- tag-based masking (Step 8)
+GRANT ROLE PII_DEMO_ROLE TO USER <YOUR_USER>;
+```
+
+Then change the first line to `SET demo_role = 'PII_DEMO_ROLE';`. The role owns the demo schema and everything in it, so it can create and apply the masking and row access policies and run classification without further grants. The masking policies treat it like ACCOUNTADMIN (full values), and the four demo roles are granted to it. This path was tested end to end and produced identical results.
 
 ## Run the demo in Snowsight
 
@@ -49,6 +64,8 @@ The site is fully static. It does not connect to any Snowflake account. You copy
 ## Repository layout
 
 ```
+LICENSE                    Apache License 2.0
+vendor/prism/              Prism.js (MIT), served locally
 index.html                 Single-page guide
 styles.css                 Styling (Snowflake palette)
 script.js                  Loads SQL steps, Prism highlighting, copy buttons, results tables
@@ -61,6 +78,20 @@ To preview locally, serve the folder over HTTP (the page fetches the SQL and JSO
 ```
 python3 -m http.server 8000
 ```
+
+## Customize with Cortex Code
+
+[Cortex Code](https://docs.snowflake.com/en/user-guide/cortex-code/cortex-code) can adapt this guide to your own data. Open the repo folder in Cortex Code and try prompts like:
+
+- "Point this demo at my customer table: map its columns to CUSTOMERS, run classification, and propose masking policies for each detected category before applying anything."
+- "Replace the hard-coded role lists in the masking policies with a mapping table so I can add roles without editing policies."
+- "Add a row access policy that restricts my analysts to their own region using my existing role hierarchy, and show the before and after row counts."
+
+Ask it to review the plan with you before it creates or changes any objects in your account.
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE). Prism.js, used for syntax highlighting, is bundled in `vendor/prism/` under its own MIT license, so the pages make no third-party requests.
 
 ## Disclaimer
 
